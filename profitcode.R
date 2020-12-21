@@ -1,4 +1,4 @@
-setwd("~/Desktop/Thesis/data /EOBS ")
+setwd("~/Desktop/Thesis/data/EOBS ")
 
 # load libraries
 

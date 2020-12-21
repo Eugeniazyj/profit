@@ -1,4 +1,4 @@
-setwd("~/Desktop/Thesis/data /Agri4cast")
+setwd("~/Desktop/Thesis/data/Agri4cast")
 
 library(raster)
 library(data.table) #for fread
@@ -13,18 +13,18 @@ vap1019$year <- substr(vap1019$DAY,1,4)
 vap1119 <- subset(vap1019, year != "2010")
 vap1119 <- vap1119[,-1]
 vap1119 <- vap1119[,-7]
-write.csv(vap1119, "~/Desktop/Thesis/data /Agri4cast/vap2011-2019.csv")
+write.csv(vap1119, "~/Desktop/Thesis/data/Agri4cast/vap2011-2019.csv")
 meant1019 <- read.csv("meant2010-2019.csv", sep=";")
 meant1019$year <- substr(meant1019$DAY,1,4)
 meant1119 <- subset(meant1019, year != "2010")
 meant1119 <- meant1119[,-7]
-write.csv(meant1119, "~/Desktop/Thesis/data /Agri4cast/meant2011-2019.csv")
+write.csv(meant1119, "~/Desktop/Thesis/data/Agri4cast/meant2011-2019.csv")
 maxt1019 <- read.csv("maxt2010-2019.csv", sep=";")
 maxt1019$year <- substr(maxt1019$DAY,1,4)
 maxt1119 <- subset(maxt1019, year != "2010")
 maxt1119 <- maxt1119[,-1]
 maxt1119 <- maxt1119[,-7]
-write.csv(maxt1119, "~/Desktop/Thesis/data /Agri4cast/maxt2011-2019.csv")
+write.csv(maxt1119, "~/Desktop/Thesis/data/Agri4cast/maxt2011-2019.csv")
 
 
 ##match the weather data and firm locations
@@ -84,7 +84,7 @@ rhlocations$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(meantlocations$T
 #relative humidity
 rhlocations$rh <- rhlocations$VAPOURPRESSURE/rhlocations$sat_vp *100
 # some RH is larger than 100%, how to deal with them???
-write.csv(rhlocations, "~/Desktop/Thesis/data /Agri4cast/rhlocations.csv")
+write.csv(rhlocations, "~/Desktop/Thesis/data/Agri4cast/rhlocations.csv")
 
 ###calculate daily max THI 
 #import max temperature 
@@ -93,7 +93,7 @@ maxtlocations <-
   THIlocations <- merge (maxtlocations, rhlocations, by=c("GRID_NO","LATITUDE","LONGITUDE","ALTITUDE","DAY"))
 ###THI=(1.8T+32)-(0.55-0.0055RH)*(1.8T-26)
 THIlocations$maxTHI <- (1.8*maxtlocations$TEMPERATURE_MAX+32)-(0.55-0.0055*rhlocations$rh)*(1.8*maxtlocations$TEMPERATURE_MAX-26)
-write.csv(THIlocations, "~/Desktop/Thesis/data /Agri4cast/THIlocations.csv")
+write.csv(THIlocations, "~/Desktop/Thesis/data/Agri4cast/THIlocations.csv")
 
 #calculate the number of max THI above 75 per year 
 #...
