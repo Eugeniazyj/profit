@@ -43,25 +43,62 @@ meant2018 <- subset(meant1119, year == "2018") #number of obervations:8177034
 meant2019 <- subset(meant1119, year == "2019") #number of obervations:8177039
 write.csv(meant1119, "~/Desktop/Thesis/data /Agri4cast/maxt2011-2019.csv")
 
-#select the mean temperadata based on locations
+###draft(select the mean temperadata based on locations)
 meant2012 <- data.frame(meant2012)
-coordinates(meant2012) <- ~ LONGITUDE + LATITUDE # I choose 2012 because the the number of observations is largest
-proj4string(meant2012) <- CRS("+init=epsg:3035")
+class(meant2012$TEMPERATURE_AVG) 
+oneday <- subset(meant2012, meant2012$DAY=='20120101') 
+oneday <- oneday[,c(3,2,6)]
+coordinates(oneday) <- ~ LONGITUDE + LATITUDE # I choose 2012 because the the number of observations is largest
+plot(oneday)
+proj4string(oneday) <- CRS("+init=epsg:3035")
+plot(oneday)
+gridded(oneday) <- TRUE
 coordinates(locations) <- ~ Longitude + Latitude
 proj4string(locations) <- CRS("+init=epsg:4326")
-locations <- spTransform(locations,"+proj=epsg: 3035")
+locations <- spTransform(locations,crs(oneday))
+oneday <- spTransform(oneday, crs(locations))
+crs(oneday)
+crs(locations)
+
+#working part
+meant2012 <- data.frame(meant2012)
+class(meant2012$TEMPERATURE_AVG) 
+oneday <- subset(meant2012, meant2012$DAY=='20120101') 
+#oneday <- oneday[,c(2,3,6)]
+coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
+proj4string(oneday) <- CRS("+init=epsg:3035")
+locations <- data.frame(oneyear$long,oneyear$lat)
+colnames(locations)[1:2] <- c("Longitude", "Latitude") 
+coordinates(locations) <- ~ Longitude + Latitude
+proj4string(locations) <- CRS("+init=epsg:4326")
+plot(oneday)
+plot(locations, pch=15, col="red", add=T)
+
+meantlocations <- raster::extract(oneday,locations) 
+#the weather data are not gridded, try two options
+#1.try to make the weather data gridded
+oneday <- subset(meant2012, meant2012$DAY=='20120101') 
+oneday <- oneday[,c(3,2,6)] 
+rasterFromXYZ(oneday) #Error in rasterFromXYZ(oneday) : x cell sizes are not regular
+#or
+coordinates(oneday) <- ~ LONGITUDE + LATITUDE # I choose 2012 because the the number of observations is largest
+proj4string(oneday) <- CRS("+init=epsg:3035")
+gridded(oneday) <- TRUE
+
+#2.link company location with the nearest weather point
+for (i in 1:ncol(weather_locations)){
+  distance_matrix <- pointDistance(oneday[[i]],locations)
+  print((i/ncol(weather_locations))*100)
+  for(k in 1:nrow(weather_locations)){
+    weather_locations[k,i]<-as.numeric(oneday[[i]][which.min(distance_matrix[,k]),1]@data)
+  }}
+
+
+
+
 
 #import weather data(mean temperature, vapour pressure, max temperature) to calculate max THI
 meant1019 <- read.csv("meant2010-2019.csv")
-
-#select the mean temperadata based on locations
-coordinates(meant1019) <- ~ LONGITUDE + LATITUDE
-proj4string(meant1019) <- CRS("+init=epsg:3035")
-coordinates(locations) <- ~ Longitude + Latitude
-proj4string(locations) <- CRS("+init=epsg:4326")
-locations <- spTransform(locations,"+proj=epsg: 3035")
-
-
 meant1019 <- read.csv("meant2010-2019.csv")
 maxt1019 <- read.csv("maxt2010-2019.csv")
 # However, the size of the data files is too large
