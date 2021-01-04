@@ -8,23 +8,23 @@ locations <- data.frame(oneyear$long,oneyear$lat)
 colnames(locations)[1:2] <- c("Longitude", "Latitude") 
 
 #转换成2011-2019
-vap1019 <- read.csv("meant2010-2019.csv", sep=";")
-vap1019$year <- substr(vap1019$DAY,1,4)
-vap1119 <- subset(vap1019, year != "2010")
-vap1119 <- vap1119[,-1]
-vap1119 <- vap1119[,-7]
-write.csv(vap1119, "~/Desktop/Thesis/data/Agri4cast/vap2011-2019.csv")
-meant1019 <- read.csv("meant2010-2019.csv", sep=";")
-meant1019$year <- substr(meant1019$DAY,1,4)
-meant1119 <- subset(meant1019, year != "2010")
-meant1119 <- meant1119[,-7]
-write.csv(meant1119, "~/Desktop/Thesis/data/Agri4cast/meant2011-2019.csv")
-maxt1019 <- read.csv("maxt2010-2019.csv", sep=";")
-maxt1019$year <- substr(maxt1019$DAY,1,4)
-maxt1119 <- subset(maxt1019, year != "2010")
-maxt1119 <- maxt1119[,-1]
-maxt1119 <- maxt1119[,-7]
-write.csv(maxt1119, "~/Desktop/Thesis/data/Agri4cast/maxt2011-2019.csv")
+#vap1019 <- read.csv("meant2010-2019.csv", sep=";")
+#vap1019$year <- substr(vap1019$DAY,1,4)
+#vap1119 <- subset(vap1019, year != "2010")
+#vap1119 <- vap1119[,-1]
+#vap1119 <- vap1119[,-7]
+#write.csv(vap1119, "~/Desktop/Thesis/data/Agri4cast/vap2011-2019.csv")
+#meant1019 <- read.csv("meant2010-2019.csv", sep=";")
+#meant1019$year <- substr(meant1019$DAY,1,4)
+#meant1119 <- subset(meant1019, year != "2010")
+#meant1119 <- meant1119[,-7]
+#write.csv(meant1119, "~/Desktop/Thesis/data/Agri4cast/meant2011-2019.csv")
+#maxt1019 <- read.csv("maxt2010-2019.csv", sep=";")
+#maxt1019$year <- substr(maxt1019$DAY,1,4)
+#maxt1119 <- subset(maxt1019, year != "2010")
+#maxt1119 <- maxt1119[,-1]
+#maxt1119 <- maxt1119[,-7]
+#write.csv(maxt1119, "~/Desktop/Thesis/data/Agri4cast/maxt2011-2019.csv")
 
 
 ##match the weather data and firm locations
@@ -45,10 +45,10 @@ write.csv(meant1119, "~/Desktop/Thesis/data /Agri4cast/maxt2011-2019.csv")
 
 ###draft(select the mean temperadata based on locations)
 meant2012 <- data.frame(meant2012)
-class(meant2012$TEMPERATURE_AVG) 
+class(meant2012$TEMPERATURE_AVG) # check the type of the mean temperature data 
 oneday <- subset(meant2012, meant2012$DAY=='20120101') 
-oneday <- oneday[,c(3,2,6)]
-coordinates(oneday) <- ~ LONGITUDE + LATITUDE # I choose 2012 because the the number of observations is largest
+oneday <- oneday[,c(3,2,6)] # keep the long and lat and temperature
+coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
 plot(oneday)
 proj4string(oneday) <- CRS("+init=epsg:3035")
 plot(oneday)
@@ -62,30 +62,27 @@ crs(locations)
 
 #working part
 meant2012 <- data.frame(meant2012)
-class(meant2012$TEMPERATURE_AVG) 
+class(meant2012$TEMPERATURE_AVG) # check the type of the mean temperature data 
 oneday <- subset(meant2012, meant2012$DAY=='20120101') 
 #oneday <- oneday[,c(2,3,6)]
 coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
-proj4string(oneday) <- CRS("+init=epsg:3035")
-locations <- data.frame(oneyear$long,oneyear$lat)
-colnames(locations)[1:2] <- c("Longitude", "Latitude") 
+proj4string(oneday) <- CRS("+init=EPSG:3035")
 coordinates(locations) <- ~ Longitude + Latitude
-proj4string(locations) <- CRS("+init=epsg:4326")
+proj4string(locations) <- CRS("+init=EPSG:4326")
 plot(oneday)
 plot(locations, pch=15, col="red", add=T)
 
-meantlocations <- raster::extract(oneday,locations) 
 #the weather data are not gridded, try two options
 #1.try to make the weather data gridded
 oneday <- subset(meant2012, meant2012$DAY=='20120101') 
 oneday <- oneday[,c(3,2,6)] 
 rasterFromXYZ(oneday) #Error in rasterFromXYZ(oneday) : x cell sizes are not regular
 #or
-coordinates(oneday) <- ~ LONGITUDE + LATITUDE # I choose 2012 because the the number of observations is largest
+coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
 proj4string(oneday) <- CRS("+init=epsg:3035")
-gridded(oneday) <- TRUE
+gridded(oneday) <- TRUE # Error in points2grid(points, tolerance, round) : dimension 1 : coordinate intervals are not constant
 
-#2.link company location with the nearest weather point
+#2.link company location with the nearest weather point  (codes below from Stephanie)
 for (i in 1:ncol(weather_locations)){
   distance_matrix <- pointDistance(oneday[[i]],locations)
   print((i/ncol(weather_locations))*100)
@@ -103,7 +100,6 @@ meant1019 <- read.csv("meant2010-2019.csv")
 maxt1019 <- read.csv("maxt2010-2019.csv")
 # However, the size of the data files is too large
 #So, import weather data based on the locations(coordinates),How?
-#plan B: import the yearly seperated data?
 
 
 
