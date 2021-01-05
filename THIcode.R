@@ -7,7 +7,7 @@ oneyear <- subset(panel, panel$year=='2011')
 locations <- data.frame(oneyear$long,oneyear$lat)
 colnames(locations)[1:2] <- c("Longitude", "Latitude") 
 
-#转换成2011-2019
+#change the data from 2010-2019 to 2011-2019
 #vap1019 <- read.csv("meant2010-2019.csv", sep=";")
 #vap1019$year <- substr(vap1019$DAY,1,4)
 #vap1119 <- subset(vap1019, year != "2010")
@@ -43,28 +43,11 @@ meant2018 <- subset(meant1119, year == "2018") #number of obervations:8177034
 meant2019 <- subset(meant1119, year == "2019") #number of obervations:8177039
 write.csv(meant1119, "~/Desktop/Thesis/data /Agri4cast/maxt2011-2019.csv")
 
-###draft(select the mean temperadata based on locations)
-meant2012 <- data.frame(meant2012)
+#working part(select the mean temperadata based on locations)
+meant2012 <- data.frame(meant2012) #select 2012 to do the matching
 class(meant2012$TEMPERATURE_AVG) # check the type of the mean temperature data 
-oneday <- subset(meant2012, meant2012$DAY=='20120101') 
-oneday <- oneday[,c(3,2,6)] # keep the long and lat and temperature
-coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
-plot(oneday)
-proj4string(oneday) <- CRS("+init=epsg:3035")
-plot(oneday)
-gridded(oneday) <- TRUE
-coordinates(locations) <- ~ Longitude + Latitude
-proj4string(locations) <- CRS("+init=epsg:4326")
-locations <- spTransform(locations,crs(oneday))
-oneday <- spTransform(oneday, crs(locations))
-crs(oneday)
-crs(locations)
-
-#working part
-meant2012 <- data.frame(meant2012)
-class(meant2012$TEMPERATURE_AVG) # check the type of the mean temperature data 
-oneday <- subset(meant2012, meant2012$DAY=='20120101') 
-#oneday <- oneday[,c(2,3,6)]
+oneday <- subset(meant2012, meant2012$DAY=='20120101') #choose only one day of all the weather stations 
+oneday <- oneday[,c(3,2,6)] # keep laong, lat, and temperature
 coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
 proj4string(oneday) <- CRS("+init=EPSG:3035")
 coordinates(locations) <- ~ Longitude + Latitude
@@ -83,23 +66,25 @@ proj4string(oneday) <- CRS("+init=epsg:3035")
 gridded(oneday) <- TRUE # Error in points2grid(points, tolerance, round) : dimension 1 : coordinate intervals are not constant
 
 #2.link company location with the nearest weather point  (codes below from Stephanie)
+library(raster)
+
+distance_matrix <- pointDistance(oneday[[1]],locations,lonlat=TRUE)
+
+weather_locations <- matrix(ncol=length(oneday),nrow=length(locations))
+dim(weather_locations)
 for (i in 1:ncol(weather_locations)){
-  distance_matrix <- pointDistance(oneday[[i]],locations)
+  distance_matrix <- pointDistance(oneday[[i]],locations,lonlat=TRUE)
   print((i/ncol(weather_locations))*100)
   for(k in 1:nrow(weather_locations)){
     weather_locations[k,i]<-as.numeric(oneday[[i]][which.min(distance_matrix[,k]),1]@data)
   }}
+# Error in .pointsToMatrix(p1) : Wrong length for a vector, should be 2
 
 
 
-
-
-#import weather data(mean temperature, vapour pressure, max temperature) to calculate max THI
-meant1019 <- read.csv("meant2010-2019.csv")
-meant1019 <- read.csv("meant2010-2019.csv")
-maxt1019 <- read.csv("maxt2010-2019.csv")
-# However, the size of the data files is too large
-#So, import weather data based on the locations(coordinates),How?
+#import weather data(mean temperature, vapour pressure, max temperature) matching the locations to calculate max THI
+vaplocations <-
+meantlocations <-
 
 
 
@@ -117,6 +102,7 @@ rhlocations$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(meantlocations$T
 #relative humidity
 rhlocations$rh <- rhlocations$VAPOURPRESSURE/rhlocations$sat_vp *100
 # some RH is larger than 100%, how to deal with them???
+# use all values divided by the largest value, and then the largest value bacomes 100%
 write.csv(rhlocations, "~/Desktop/Thesis/data/Agri4cast/rhlocations.csv")
 
 ###calculate daily max THI 
