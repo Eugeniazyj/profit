@@ -47,13 +47,15 @@ write.csv(meant1119, "~/Desktop/Thesis/data /Agri4cast/maxt2011-2019.csv")
 meant2012 <- data.frame(meant2012) #select 2012 to do the matching
 class(meant2012$TEMPERATURE_AVG) # check the type of the mean temperature data 
 oneday <- subset(meant2012, meant2012$DAY=='20120101') #choose only one day of all the weather stations 
-oneday <- oneday[,c(3,2,6)] # keep laong, lat, and temperature
+oneday <- oneday[,c(1,3,2,6)] # keep laong, lat, and temperature
 coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
 proj4string(oneday) <- CRS("+init=EPSG:3035")
 coordinates(locations) <- ~ Longitude + Latitude
 proj4string(locations) <- CRS("+init=EPSG:4326")
 plot(oneday)
 plot(locations, pch=15, col="red", add=T)
+
+
 
 #the weather data are not gridded, try two options
 #1.try to make the weather data gridded
@@ -68,19 +70,43 @@ gridded(oneday) <- TRUE # Error in points2grid(points, tolerance, round) : dimen
 #2.link company location with the nearest weather point  (codes below from Stephanie)
 library(raster)
 
-distance_matrix <- pointDistance(oneday[[1]],locations,lonlat=TRUE)
+# calculate distance matrix between grid cells (oneday) and firms (locations)
+distance_matrix <- pointDistance(oneday,locations,lonlat=TRUE)
 
-weather_locations <- matrix(ncol=length(oneday),nrow=length(locations))
-dim(weather_locations)
-for (i in 1:ncol(weather_locations)){
-  distance_matrix <- pointDistance(oneday[[i]],locations,lonlat=TRUE)
-  print((i/ncol(weather_locations))*100)
-  for(k in 1:nrow(weather_locations)){
-    weather_locations[k,i]<-as.numeric(oneday[[i]][which.min(distance_matrix[,k]),1]@data)
-  }}
-# Error in .pointsToMatrix(p1) : Wrong length for a vector, should be 2
+# use meaningful row (GRID_NO) and column (Company) names
+rownames(distance_matrix)<-oneday@data$GRID_NO
+colnames(distance_matrix)<-oneyear$company
 
+# create empty vector of NA as placeholders for the GRID_NO with the closest distance to each of the companies
+closest_cell<-as.vector(rep(NA,ncol(distance_matrix)))
 
+# loop through the firms and get the GRID_NO with the smallest distance to the firm
+for (i in 1:ncol(distance_matrix)){
+      closest_cell[i]<-rownames(distance_matrix)[which.min(distance_matrix[,i])]
+  }
+
+# create an empty matrix with as many columns as companies and as many rows as days in the weather data
+meant_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
+date_firm <-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
+
+# loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
+# as a check we write the day from the weather data (DAY from meantt1119) into the date_firm matrix
+# each column of the date_firm matrix should be similar to each other 
+for (i in 1:ncol(meant_firm)){
+  meant_firm[,i] <- subset(meant1119, GRID_NO == as.numeric(closest_cell[i]))$TEMPERATURE_AVG
+  date_firm [,i] <- subset(meant1119, GRID_NO == as.numeric(closest_cell[i]))$DAY
+  print(i/ncol(meant_firm)*100)
+  }
+
+# to do 
+# 1. replicate for vapour pressure
+# 2. calculate humidity from vapour pressure and mean temperature
+# 3. calculcate daily max THI from daily max temperature and humidity
+# 4. count the no of days above THI threshold 
+# 5. merge all the data together to get the final data frame for the regression 
+# note: melt the data before merging
+
+head(meant1119)
 
 #import weather data(mean temperature, vapour pressure, max temperature) matching the locations to calculate max THI
 vaplocations <-
