@@ -2,6 +2,8 @@ setwd("~/Desktop/Thesis/data/Agri4cast")
 
 library(raster)
 library(data.table) #for fread
+library(rJava)
+library(reshape2)
 #define locations
 oneyear <- subset(panel, panel$year=='2011') 
 locations <- data.frame(oneyear$long,oneyear$lat)
@@ -47,7 +49,7 @@ write.csv(meant1119, "~/Desktop/Thesis/data /Agri4cast/maxt2011-2019.csv")
 meant2012 <- data.frame(meant2012) #select 2012 to do the matching
 class(meant2012$TEMPERATURE_AVG) # check the type of the mean temperature data 
 oneday <- subset(meant2012, meant2012$DAY=='20120101') #choose only one day of all the weather stations 
-oneday <- oneday[,c(1,3,2,6)] # keep laong, lat, and temperature
+oneday <- oneday[,c(1,3,2,6)] # keep Grid number, long, lat, and temperature
 coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
 proj4string(oneday) <- CRS("+init=EPSG:3035")
 coordinates(locations) <- ~ Longitude + Latitude
@@ -58,14 +60,14 @@ plot(locations, pch=15, col="red", add=T)
 
 
 #the weather data are not gridded, try two options
-#1.try to make the weather data gridded
-oneday <- subset(meant2012, meant2012$DAY=='20120101') 
-oneday <- oneday[,c(3,2,6)] 
-rasterFromXYZ(oneday) #Error in rasterFromXYZ(oneday) : x cell sizes are not regular
+#1.try to make the weather data gridded (doesn't work)
+#oneday <- subset(meant2012, meant2012$DAY=='20120101') 
+#oneday <- oneday[,c(3,2,6)] 
+#rasterFromXYZ(oneday) #Error in rasterFromXYZ(oneday) : x cell sizes are not regular
 #or
-coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
-proj4string(oneday) <- CRS("+init=epsg:3035")
-gridded(oneday) <- TRUE # Error in points2grid(points, tolerance, round) : dimension 1 : coordinate intervals are not constant
+#coordinates(oneday) <- ~ LONGITUDE + LATITUDE 
+#proj4string(oneday) <- CRS("+init=epsg:3035")
+#gridded(oneday) <- TRUE # Error in points2grid(points, tolerance, round) : dimension 1 : coordinate intervals are not constant
 
 #2.link company location with the nearest weather point  (codes below from Stephanie)
 library(raster)
@@ -90,13 +92,22 @@ meant_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=le
 date_firm <-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
 
 # loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
-# as a check we write the day from the weather data (DAY from meantt1119) into the date_firm matrix
+# as a check we write the day from the weather data (DAY from meant1119) into the date_firm matrix
 # each column of the date_firm matrix should be similar to each other 
 for (i in 1:ncol(meant_firm)){
   meant_firm[,i] <- subset(meant1119, GRID_NO == as.numeric(closest_cell[i]))$TEMPERATURE_AVG
   date_firm [,i] <- subset(meant1119, GRID_NO == as.numeric(closest_cell[i]))$DAY
   print(i/ncol(meant_firm)*100)
-  }
+}
+#save the .Rdata
+
+# melt the data
+meant_firm <- data.table(meant_firm)
+date_firm <- data.table(date_firm)
+colnames(meant_firm)<-oneyear$company
+meant_firm$DAY <- date_firm$X1
+head(melt(meant_firm[,c(1:1608)], id="DAY"))
+meant_firm_melted<-melt(meant_firm[,c(1:1608)], id="DAY")
 
 # to do 
 # 1. replicate for vapour pressure
@@ -106,30 +117,57 @@ for (i in 1:ncol(meant_firm)){
 # 5. merge all the data together to get the final data frame for the regression 
 # note: melt the data before merging
 
-head(meant1119)
 
-#import weather data(mean temperature, vapour pressure, max temperature) matching the locations to calculate max THI
-vaplocations <-
-meantlocations <-
+# 1. replicate for vapour pressure
+# create an empty matrix with as many columns as companies and as many rows as days in the weather data
+vap_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
 
+# loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
+# as a check we write the day from the weather data (DAY from meant1119) into the date_firm matrix
+# each column of the date_firm matrix should be similar to each other 
+for (i in 1:ncol(meant_firm)){
+  vap_firm[,i] <- subset(vap1119, GRID_NO == as.numeric(closest_cell[i]))$VAPOURPRESSURE
+  print(i/ncol(vap_firm)*100)
+}
+# melt the data
 
-
-#calculate relative humidity
+# 2. calculate humidity from vapour pressure and mean temperature
 ##merge mean temperature and vapor pressure
-rhlocations <- merge(vaplocations,meantlocations, by=c("GRID_NO","LATITUDE","LONGITUDE","ALTITUDE","DAY"))
+rh_firm <- merge(vap_firm,meant_firm, by=c("company"))
 #relative humidity = water vapor pressure/saturation vapor pressure *100
 #saturation vapor pressure(temperature) = saturation vapor pressure (temp_0) * exp(L/R_w*(1/temp_0 - 1/temp))
 # = 6.11 hPA * exp(2.5*10^6 J/kg / 461.52 J/kgK * (1/273.15K - 1/temp [K] --> temp in Kelvin))
 # 0 ?C = 273.15 K
 
 #saturation vapor pressure
-rhlocations$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(meantlocations$TEMPERATURE_AVG+273.15)))
+rh_firm$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(meant_firm$TEMPERATURE+273.15)))
 
 #relative humidity
-rhlocations$rh <- rhlocations$VAPOURPRESSURE/rhlocations$sat_vp *100
+rh_firm$rh <- rh_firm$VAPOURPRESSURE/rh_firm$sat_vp *100
 # some RH is larger than 100%, how to deal with them???
 # use all values divided by the largest value, and then the largest value bacomes 100%
-write.csv(rhlocations, "~/Desktop/Thesis/data/Agri4cast/rhlocations.csv")
+write.csv(rh_firm, "~/Desktop/Thesis/data/Agri4cast/rhlocations.csv")
+# 3. calculcate daily max THI from daily max temperature and humidity
+# create an empty matrix with as many columns as companies and as many rows as days in the weather data
+maxt_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
+
+# loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
+# as a check we write the day from the weather data (DAY from meant1119) into the date_firm matrix
+# each column of the date_firm matrix should be similar to each other 
+for (i in 1:ncol(maxt_firm)){
+  maxt_firm[,i] <- subset(maxt1119, GRID_NO == as.numeric(closest_cell[i]))$TEMPERATURE_MAX
+  print(i/ncol(maxt_firm)*100)
+}
+# melt the data
+
+# 4. count the no of days above THI threshold 
+# 5. merge all the data together to get the final data frame for the regression 
+
+
+
+
+
+
 
 ###calculate daily max THI 
 #import max temperature 
