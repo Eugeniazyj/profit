@@ -102,12 +102,13 @@ for (i in 1:ncol(meant_firm)){
 #save the .Rdata
 
 # melt the data
-meant_firm <- data.table(meant_firm)
-date_firm <- data.table(date_firm)
+meant_firm <- data.frame(meant_firm)
+date_firm <- data.frame(date_firm)
 colnames(meant_firm)<-oneyear$company
-meant_firm$DAY <- date_firm$X1
-head(melt(meant_firm[,c(1:1608)], id="DAY"))
-meant_firm_melted<-melt(meant_firm[,c(1:1608)], id="DAY")
+meant_firm$DAY<- date_firm$X1
+head(melt(meant_firm[,c(1609,1:1608)], id="DAY"))  
+meant_firm_melted<-melt(meant_firm[,c(1609,1:1608)], id="DAY")
+colnames(meant_firm_melted)[2:3]<-c("company","meantemperature")
 
 # to do 
 # 1. replicate for vapour pressure
@@ -120,35 +121,45 @@ meant_firm_melted<-melt(meant_firm[,c(1:1608)], id="DAY")
 
 # 1. replicate for vapour pressure
 # create an empty matrix with as many columns as companies and as many rows as days in the weather data
+vap1119 <- fread("vap2011-2019.csv")
 vap_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
 
 # loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
-# as a check we write the day from the weather data (DAY from meant1119) into the date_firm matrix
-# each column of the date_firm matrix should be similar to each other 
-for (i in 1:ncol(meant_firm)){
+for (i in 1:ncol(vap_firm)){
   vap_firm[,i] <- subset(vap1119, GRID_NO == as.numeric(closest_cell[i]))$VAPOURPRESSURE
   print(i/ncol(vap_firm)*100)
 }
 # melt the data
+vap_firm <- data.frame(vap_firm)
+colnames(vap_firm)<-oneyear$company
+vap_firm$DAY<- date_firm$V1
+head(melt(vap_firm[,c(1609,1:1608)], id="DAY"))  
+vap_firm_melted<-melt(vap_firm[,c(1609,1:1608)], id="DAY")
+colnames(vap_firm_melted)[2:3]<-c("company","vapourpressure")
 
 # 2. calculate humidity from vapour pressure and mean temperature
 ##merge mean temperature and vapor pressure
-rh_firm <- merge(vap_firm,meant_firm, by=c("company"))
+rh_firm <- merge(vap_firm_melted,meant_firm_melted, by=c("DAY","company"))
 #relative humidity = water vapor pressure/saturation vapor pressure *100
 #saturation vapor pressure(temperature) = saturation vapor pressure (temp_0) * exp(L/R_w*(1/temp_0 - 1/temp))
 # = 6.11 hPA * exp(2.5*10^6 J/kg / 461.52 J/kgK * (1/273.15K - 1/temp [K] --> temp in Kelvin))
 # 0 ?C = 273.15 K
 
-#saturation vapor pressure
-rh_firm$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(meant_firm$TEMPERATURE+273.15)))
+#saturation vapor pressure (from Stephanie)
+#is this correct?
+rh_firm$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(rh_firm$meantemperature+273.15)))
 
 #relative humidity
-rh_firm$rh <- rh_firm$VAPOURPRESSURE/rh_firm$sat_vp *100
+rh_firm$rh <- rh_firm$vapourpressure/rh_firm$sat_vp *100 #rh is not correct obviously, some of them are above 1000
 # some RH is larger than 100%, how to deal with them???
 # use all values divided by the largest value, and then the largest value bacomes 100%
+
+
 write.csv(rh_firm, "~/Desktop/Thesis/data/Agri4cast/rhlocations.csv")
+
 # 3. calculcate daily max THI from daily max temperature and humidity
 # create an empty matrix with as many columns as companies and as many rows as days in the weather data
+maxt1119 <- fread("maxt2011-2019.csv")
 maxt_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
 
 # loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
@@ -159,8 +170,22 @@ for (i in 1:ncol(maxt_firm)){
   print(i/ncol(maxt_firm)*100)
 }
 # melt the data
+maxt_firm <- data.frame(maxt_firm)
+colnames(maxt_firm)<-oneyear$company
+maxt_firm$DAY<- date_firm$X1
+head(melt(vap_firm[,c(1609,1:1608)], id="DAY"))  
+maxt_firm_melted<-melt(maxt_firm[,c(1609,1:1608)], id="DAY")
+colnames(maxt_firm_melted)[2:3]<-c("company","maxtemperature")
+
+#calculate dailt max THI
+  #merge max temperature and RH
+THI_firm <- merge (maxt_firm_melted, rh_firm, by=c("company","DAY"))
+###THI=(1.8T+32)-(0.55-0.0055RH)*(1.8T-26)
+THI_firm$maxTHI <- (1.8*maxt_firm$maxtemperature+32)-(0.55-0.0055*rh_firm$rh)*(1.8*maxt_firm$Tmaxtemperature-26)
+write.csv(THI_firm, "~/Desktop/Thesis/data/Agri4cast/THIlocations.csv")
 
 # 4. count the no of days above THI threshold 
+
 # 5. merge all the data together to get the final data frame for the regression 
 
 
