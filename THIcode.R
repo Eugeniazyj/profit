@@ -153,7 +153,7 @@ rh_firm <- merge(vap_firm_melted,meant_firm_melted, by=c("DAY","company"))
 rh_firm$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(rh_firm$meantemperature+273.15)))
 
 #relative humidity
-rh_firm$rh <- rh_firm$vapourpressure/rh_firm$sat_vp *100 #rh is not correct obviously, some of them are above 1000
+rh_firm$rh <- rh_firm$vapourpressure/rh_firm$sat_vp *100 # some of them are above 1000
 # some RH is larger than 100%, how to deal with them???
 # use all values divided by the largest value, and then the largest value bacomes 100%
 
@@ -193,14 +193,14 @@ THI_above <- subset(THI_firm,maxTHI>75)
 THI_above$newcolumn <- 1
 THI_days<-aggregate(THI_above$newcolumn, by=list(THI_above$company,THI_above$year), FUN=sum) #sum the number of days that daily max THI above 75 in each year
 colnames(THI_days)<-c("company","year","THI_DAYS") 
-# But the problem is for some companies, not all 9 years are kept, the number of observations is 14289 rather than 14472
-# how to make all values above threshold 1, otherwise 0? if...else...?
+
 
 # 5. merge all the data together to get the final data frame for the regression 
 panel_final<-  merge (THI_days,panel, by=c("company","year"),all=TRUE)
-panel_final[is.na(panel_final)] <- 0
+panel_final$THI_DAYS[is.na(panel_final$THI_DAYS)] <- 0
+panel_final<-panel_final[,c(1,2,3,14,4:13)]
 
-
+#question: how to deal with NA?
 
 
 
