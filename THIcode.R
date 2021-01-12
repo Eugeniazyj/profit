@@ -4,6 +4,7 @@ library(raster)
 library(data.table) #for fread
 library(rJava)
 library(reshape2)
+library(dplyr)
 #define locations
 oneyear <- subset(panel, panel$year=='2011') 
 locations <- data.frame(oneyear$long,oneyear$lat)
@@ -181,12 +182,20 @@ colnames(maxt_firm_melted)[2:3]<-c("company","maxtemperature")
   #merge max temperature and RH
 THI_firm <- merge (maxt_firm_melted, rh_firm, by=c("company","DAY"))
 ###THI=(1.8T+32)-(0.55-0.0055RH)*(1.8T-26)
-THI_firm$maxTHI <- (1.8*maxt_firm$maxtemperature+32)-(0.55-0.0055*rh_firm$rh)*(1.8*maxt_firm$Tmaxtemperature-26)
+THI_firm$maxTHI <- (1.8*THI_firm$maxtemperature+32)-(0.55-0.0055*THI_firm$rh)*(1.8*THI_firm$maxtemperature-26)
 write.csv(THI_firm, "~/Desktop/Thesis/data/Agri4cast/THIlocations.csv")
 
 # 4. count the no of days above THI threshold 
+THI_firm$year <- substr(THI_firm$DAY,1,4)
+THI_above <- subset(THI_firm,maxTHI>75)
+THI_above$newcolumn <- 1
+THI_days<-aggregate(THI_above$newcolumn, by=list(THI_above$company,THI_above$year), FUN=sum) #sum the number of days that daily max THI above 75 in each year
+colnames(THI_days)<-c("company","year","THI_DAYS") 
+# But the problem is for some companies, not all 9 years are kept, the number of observations is 14289 rather than 14472
+# how to make all values above threshold 1, otherwise 0? if...else...?
 
 # 5. merge all the data together to get the final data frame for the regression 
+panel_final<-  merge (THI_days,panel, by=c("company","year"))
 
 
 
