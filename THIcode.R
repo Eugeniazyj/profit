@@ -143,8 +143,10 @@ colnames(vap_firm_melted)[2:3]<-c("company","vapourpressure")
 rh_firm <- merge(vap_firm_melted,meant_firm_melted, by=c("DAY","company"))
 #relative humidity = water vapor pressure/saturation vapor pressure *100
 #saturation vapor pressure(temperature) = saturation vapor pressure (temp_0) * exp(L/R_w*(1/temp_0 - 1/temp))
+# https://geo.libretexts.org/Bookshelves/Meteorology/Book%3A_Practical_Meteorology_(Stull)/04%3A_Water_Vapor/4.00%3A_Vapor_Pressure_at_Saturation
 # = 6.11 hPA * exp(2.5*10^6 J/kg / 461.52 J/kgK * (1/273.15K - 1/temp [K] --> temp in Kelvin))
 # 0 ?C = 273.15 K
+
 
 #saturation vapor pressure (from Stephanie)
 #is this correct?
@@ -195,25 +197,11 @@ colnames(THI_days)<-c("company","year","THI_DAYS")
 # how to make all values above threshold 1, otherwise 0? if...else...?
 
 # 5. merge all the data together to get the final data frame for the regression 
-panel_final<-  merge (THI_days,panel, by=c("company","year"))
+panel_final<-  merge (THI_days,panel, by=c("company","year"),all=TRUE)
+panel_final[is.na(panel_final)] <- 0
 
 
 
 
 
 
-
-###calculate daily max THI 
-#import max temperature 
-maxtlocations <- 
-  #merge max temperature and RH
-  THIlocations <- merge (maxtlocations, rhlocations, by=c("GRID_NO","LATITUDE","LONGITUDE","ALTITUDE","DAY"))
-###THI=(1.8T+32)-(0.55-0.0055RH)*(1.8T-26)
-THIlocations$maxTHI <- (1.8*maxtlocations$TEMPERATURE_MAX+32)-(0.55-0.0055*rhlocations$rh)*(1.8*maxtlocations$TEMPERATURE_MAX-26)
-write.csv(THIlocations, "~/Desktop/Thesis/data/Agri4cast/THIlocations.csv")
-
-#calculate the number of max THI above 75 per year 
-#...
-fTHIyear <-
-  colnames(fTHIyear)<-c("company","year","fTHIyear") 
-panel <- merge(panel,fTHI, by=c("company","year"))
