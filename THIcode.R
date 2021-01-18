@@ -105,8 +105,8 @@ for (i in 1:ncol(meant_firm)){
 # melt the data
 meant_firm <- data.frame(meant_firm)
 date_firm <- data.frame(date_firm)
-colnames(meant_firm)<-oneyear$company
-meant_firm$DAY<- date_firm$X1
+colnames(meant_firm)<-oneyear$company #change the colume names to company name
+meant_firm$DAY<- date_firm$X1 #create a new row for date
 head(melt(meant_firm[,c(1609,1:1608)], id="DAY"))  
 meant_firm_melted<-melt(meant_firm[,c(1609,1:1608)], id="DAY")
 colnames(meant_firm_melted)[2:3]<-c("company","meantemperature")
@@ -122,7 +122,7 @@ colnames(meant_firm_melted)[2:3]<-c("company","meantemperature")
 
 # 1. replicate for vapour pressure
 # create an empty matrix with as many columns as companies and as many rows as days in the weather data
-vap1119 <- fread("vap2011-2019.csv")
+vap1119 <- fread("vap2011-2019.csv") #read data
 vap_firm<-matrix(,nrow=(as.Date("2019-12-31")-as.Date("2011-01-01"))+1,ncol=length(closest_cell))
 
 # loop through the firms and subset the weather by taking only the GRID_NO that is closest to firm i
@@ -130,6 +130,7 @@ for (i in 1:ncol(vap_firm)){
   vap_firm[,i] <- subset(vap1119, GRID_NO == as.numeric(closest_cell[i]))$VAPOURPRESSURE
   print(i/ncol(vap_firm)*100)
 }
+
 # melt the data
 vap_firm <- data.frame(vap_firm)
 colnames(vap_firm)<-oneyear$company
@@ -155,8 +156,6 @@ rh_firm$sat_vp <- 6.11 * exp(2.5*10^6/461.52*(1/273.15 - 1/(rh_firm$meantemperat
 #relative humidity
 rh_firm$rh <- rh_firm$vapourpressure/rh_firm$sat_vp *100 # some of them are above 1000
 # some RH is larger than 100%, how to deal with them???
-# use all values divided by the largest value, and then the largest value bacomes 100%
-
 
 write.csv(rh_firm, "~/Desktop/Thesis/data/Agri4cast/rhlocations.csv")
 
@@ -197,8 +196,8 @@ colnames(THI_days)<-c("company","year","THI_DAYS")
 
 # 5. merge all the data together to get the final data frame for the regression 
 panel_final<-  merge (THI_days,panel, by=c("company","year"),all=TRUE)
-panel_final$THI_DAYS[is.na(panel_final$THI_DAYS)] <- 0
-panel_final<-panel_final[,c(1,2,3,14,4:13)]
+panel_final$THI_DAYS[is.na(panel_final$THI_DAYS)] <- 0 #when count the THI_DAYS, for some companies, in some years, there are no days above THI threshold. When merging the data, they become NA, now I change them to 0.
+panel_final<-panel_final[,c(1,2,3,14,4:13)]#change the order of columes 
 
 #question: how to deal with NA?
 
