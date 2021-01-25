@@ -16,14 +16,75 @@ library(fixest)
 library(sjPlot)
 library(ggplot2)
 panel_final$turnover <- as.numeric(panel_final$turnover)
-panelregression1<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panel_final)#NOTE: 1,867 observations removed because of NA values (LHS: 56, RHS: 1,811).
-summary(panelregression1, se="twoway")
+panelregressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panel_final)#NOTE: 1,867 observations removed because of NA values (LHS: 56, RHS: 1,811).
+summary(panelregressionTO, se="twoway")
 # or: summary(panelregression1, cluster = ~year+company)
 # or: summary(panelregression1, cluster = panelregression[,c("year","company")])
 # I don't fully understand cluster here, when clustered only by company, precipitation becomes more significant
+# when the threshold is 75, THI_DAYS is not significant; but when threhold changes to 80, all variables are significant at the 10% level
 panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
-panelregression2 <- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
-summary(panelregression2, se="twoway")
+panelregressionROE <- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
+summary(panelregressionROE, se="twoway")
+# whatever 75 or 80, not significant
 plot_model(panelregression1,type = "pred",terms = "precipitation[all]")
 plot_model(panelregression2,type = "pred",terms = "precipitation[all]")
 # How to interpret marginal effects for precipitation.
+
+
+#robust check
+panelrobust <- panel_final
+panelrobust$turnover <- as.numeric(panelrobust$turnover)
+panelrobust$ROE <- as.numeric(gsub(",",".",panelrobust$ROE)) 
+summary(panelrobust$long)
+paneleast <- subset(panelrobust, panelrobust$long > 14.2)
+panelwest <- subset(panelrobust, panelrobust$long < 14.2)
+summary(panelrobust$lat)
+panelnorth <- subset(panelrobust,panelrobust$lat > 46.75)
+panelsouth <- subset(panelrobust,panelrobust$lat < 46.75)
+
+panelregressionTOeast<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, paneleast)
+summary(panelregressionTOeast,se="twoway")
+panelregressionTOwest<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelwest)
+summary(panelregressionTOwest,se="twoway")
+panelregressionTOnorth<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelnorth)
+summary(panelregressionTOnorth,se="twoway")
+panelregressionTOsouth<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsouth)
+summary(panelregressionTOsouth,se="twoway")
+
+panelregressionROEeast<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, paneleast)
+summary(panelregressionROEeast,se="twoway")
+panelregressionROEwest<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelwest)
+summary(panelregressionROEwest,se="twoway")
+panelregressionROEnorth<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelnorth)
+summary(panelregressionROEnorth,se="twoway")
+panelregressionROEsouth<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsouth)
+summary(panelregressionROEsouth,se="twoway")
+
+
+#Should I do like this?
+#Run the same model again for subsamples based on the firm's employee size class
+library(dplyr)
+panel_final$Number.of.employees.Last.avail..yr <- as.numeric(panel_final$Number.of.employees.Last.avail..yr)
+panel_final$companysize <-if_else(panel_final$Number.of.employees.Last.avail..yr <= 9, 1, if_else(panel_final$Number.of.employees.Last.avail..yr <= 50, 2, if_else(panel_final$Number.of.employees.Last.avail..yr<= 250, 3, 4)))
+panelsize1 <- subset(panel_final, panel_final$companysize == 1)
+panel1regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize1)
+summary(panel1regressionTO,se="twoway")
+panelsize2 <- subset(panel_final, panel_final$companysize == 2)
+panel2regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize2)
+summary(panel2regressionTO,se="twoway")
+panelsize3 <- subset(panel_final, panel_final$companysize == 3)
+panel3regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize3)
+summary(panel3regressionTO,se="twoway")
+panelsize4 <- subset(panel_final, panel_final$companysize == 4)
+panel4regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize4)
+summary(panel4regressionTO,se="twoway")
+
+panel1regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize1)
+summary(panel1regressionROE,se="twoway")
+panel2regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize2)
+summary(panel2regressionROE,se="twoway")
+panel3regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize3)
+summary(panel3regressionROE,se="twoway")
+panel4regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize4)
+summary(panel4regressionROE,se="twoway")
+#Question:How to make graghs for these results?
