@@ -188,18 +188,33 @@ write.csv(THI_firm, "~/Desktop/Thesis/data/Agri4cast/THIlocations.csv")
 
 # 4. count the no of days above THI threshold 
 THI_firm$year <- substr(THI_firm$DAY,1,4)
-THI_above <- subset(THI_firm,maxTHI>75)
-THI_above$newcolumn <- 1
-THI_days<-aggregate(THI_above$newcolumn, by=list(THI_above$company,THI_above$year), FUN=sum) #sum the number of days that daily max THI above 75 in each year
-colnames(THI_days)<-c("company","year","THI_DAYS") 
+THI_above75 <- subset(THI_firm,maxTHI>75)
+THI_above75$newcolumn <- 1
+THI_days75<-aggregate(THI_above75$newcolumn, by=list(THI_above75$company,THI_above75$year), FUN=sum) #sum the number of days that daily max THI above 75 in each year
+colnames(THI_days75)<-c("company","year","THI_DAYS75") 
+
+THI_above80 <- subset(THI_firm,maxTHI>80)
+THI_above80$newcolumn <- 1
+THI_days80<-aggregate(THI_above80$newcolumn, by=list(THI_above80$company,THI_above80$year), FUN=sum) #sum the number of days that daily max THI above 75 in each year
+colnames(THI_days80)<-c("company","year","THI_DAYS80") 
+
+THI_above85 <- subset(THI_firm,maxTHI>85)
+THI_above85$newcolumn <- 1
+THI_days85<-aggregate(THI_above85$newcolumn, by=list(THI_above85$company,THI_above85$year), FUN=sum) #sum the number of days that daily max THI above 75 in each year
+colnames(THI_days85)<-c("company","year","THI_DAYS85") 
+
 
 
 # 5. merge all the data together to get the final data frame for the regression 
-panel_final<-  merge (THI_days,panel, by=c("company","year"),all=TRUE)
-panel_final$THI_DAYS[is.na(panel_final$THI_DAYS)] <- 0 #when count the THI_DAYS, for some companies, in some years, there are no days above THI threshold. When merging the data, they become NA, now I change them to 0.
-panel_final<-panel_final[,c(1,2,3,14,4:13)]#change the order of columes 
+THI_days7580<-  merge (THI_days75,THI_days80, by=c("company","year"),all=TRUE)
+THI_days758085<-  merge (THI_days7580,THI_days85, by=c("company","year"),all=TRUE)
+panel_final<-  merge (THI_days758085,panel, by=c("company","year"),all=TRUE)
+panel_final$THI_DAYS75[is.na(panel_final$THI_DAYS75)] <- 0 #when count the THI_DAYS, for some companies, in some years, there are no days above THI threshold. When merging the data, they become NA, now I change them to 0.
+panel_final$THI_DAYS80[is.na(panel_final$THI_DAYS80)] <- 0
+panel_final$THI_DAYS85[is.na(panel_final$THI_DAYS85)] <- 0
+panel_final<-panel_final[,c(1,2,3,4,5,16,6:15)]#change the order of columes 
 
-#question: how to deal with NA?
+
 
 
 

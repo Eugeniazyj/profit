@@ -12,33 +12,51 @@
 # for rainfall you need a marginal effects plot
 # see here https://www.patrickbaylis.com/blog/2018-04-12-svycontrasts/
 
+
+# Part one: basic regression
 library(fixest)
 library(sjPlot)
 library(ggplot2)
 library(dplyr)
-#threshold=75
+#drop the observations that turnover < 0
+panel_final<- subset(panel_final, panel_final$company != "2707._CASEIFICIO RISORTA SRL")
+panel_final<- subset(panel_final, panel_final$company != "3202._SICILMILK S.R.L.")
 panel_final$turnover <- as.numeric(panel_final$turnover) #change the type of turnover from character to numeric
-panelregressionTO<- feols(log(turnover+70) ~ THI_DAYS + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
-#NOTE: 1,867 observations removed because of NA values (LHS: 56, RHS: 1,811).
-summary(panelregressionTO)
-hist((panel_final$turnover+70))
-summary(panelregressionTO, se="twoway") #show the regression output
+summary(panel_final$turnover)# the min turnover is -70, but we need turnover >0, wo we use turnover+70
+hist((panel_final$turnover))
+
+panelregressionTO75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
+summary(panelregressionTO75)#threshold=75
+plot_model(panelregressionTO75,type = "pred",terms = "precipitation[all]")
+
+panelregressionTO80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
+summary(panelregressionTO80)#threshold=80
+plot_model(panelregressionTO80,type = "pred",terms = "precipitation[all]")
+
+panelregressionTO85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
+summary(panelregressionTO85)#threshold=85
+plot_model(panelregressionTO85,type = "pred",terms = "precipitation[all]")
+
+# summary(panelregressionTO, se="twoway") #we do not put clustered se in summary but put in regression
 # or: summary(panelregressionTO, cluster = ~year+company)
 # or: summary(panelregression, cluster = panelregression[,c("year","company")])
-### Question: I don't fully understand cluster here
-# when the threshold is 75, THI_DAYS is not significant; but when threhold changes to 80, all variables are significant at the 10% level
-summary(panel_final$ROE)
+
 panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
-panelregressionROE <- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
-summary(panelregressionROE, se="twoway")
-# whatever 75 or 80, not significant
-plot_model(panelregressionTO,type = "pred",terms = "precipitation[all]")
-plot_model(panelregressionROE,type = "pred",terms = "precipitation[all]")
-### Question: How to interpret marginal effects for precipitation properly?
+summary(panel_final$ROE)
 
+panelregressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
+summary(panelregressionROE75)
+plot_model(panelregressionROE75,type = "pred",terms = "precipitation[all]")
 
-#robust check
-###Question: I also do not fully understand robust check, I only have an abstract understanding. 
+panelregressionROE80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
+summary(panelregressionROE80)
+plot_model(panelregressionROE80,type = "pred",terms = "precipitation[all]")
+
+panelregressionROE85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
+summary(panelregressionROE85)
+plot_model(panelregressionROE85,type = "pred",terms = "precipitation[all]")
+
+#Part two:robust check
 ###How to tell whether it is robust or not? 
 panelrobust <- panel_final
 panelrobust$turnover <- as.numeric(panelrobust$turnover)
@@ -50,48 +68,221 @@ summary(panelrobust$lat)
 panelnorth <- subset(panelrobust,panelrobust$lat > 46.75)
 panelsouth <- subset(panelrobust,panelrobust$lat < 46.75)
 
-panelregressionTOeast<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, paneleast)
-summary(panelregressionTOeast,se="twoway")
-panelregressionTOwest<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelwest)
-summary(panelregressionTOwest,se="twoway")
-panelregressionTOnorth<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelnorth)
-summary(panelregressionTOnorth,se="twoway")
-panelregressionTOsouth<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsouth)
-summary(panelregressionTOsouth,se="twoway")
+#turnover, east 
+panelregressionTOeast75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
+summary(panelregressionTOeast75)
+plot_model(panelregressionTOeast75,type = "pred",terms = "precipitation[all]")
 
-panelregressionROEeast<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, paneleast)
-summary(panelregressionROEeast,se="twoway")
-panelregressionROEwest<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelwest)
-summary(panelregressionROEwest,se="twoway")
-panelregressionROEnorth<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelnorth)
-summary(panelregressionROEnorth,se="twoway")
-panelregressionROEsouth<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsouth)
-summary(panelregressionROEsouth,se="twoway")
+panelregressionTOeast80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
+summary(panelregressionTOeast80)
+plot_model(panelregressionTOeast80,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOeast85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
+summary(panelregressionTOeast85)
+plot_model(panelregressionTOeast85,type = "pred",terms = "precipitation[all]")
+
+#turnover,west
+panelregressionTOwest75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelwest)
+summary(panelregressionTOwest75)
+plot_model(panelregressionTOwest75,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOwest80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelwest)
+summary(panelregressionTOwest80)
+plot_model(panelregressionTOwest80,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOwest85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelwest)
+summary(panelregressionTOwest85)
+plot_model(panelregressionTOwest85,type = "pred",terms = "precipitation[all]")
+
+#turnover,north
+panelregressionTOnorth75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelnorth)
+summary(panelregressionTOnorth75)
+plot_model(panelregressionTOnorth75,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOnorth80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelnorth)
+summary(panelregressionTOnorth80)
+plot_model(panelregressionTOnorth80,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOnorth85<- feols(log(turnover)~ THI_DAYS85 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelnorth)
+summary(panelregressionTOnorth85)
+plot_model(panelregressionTOnorth85,type = "pred",terms = "precipitation[all]")
+
+#turnover,south
+panelregressionTOsouth75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelsouth)
+summary(panelregressionTOsouth75)
+plot_model(panelregressionTOsouth75,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOsouth80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelsouth)
+summary(panelregressionTOsouth80)
+plot_model(panelregressionTOsouth80,type = "pred",terms = "precipitation[all]")
+
+panelregressionTOsouth85<- feols(log(turnover)~ THI_DAYS85 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelsouth)
+summary(panelregressionTOsouth85)
+plot_model(panelregressionTOsouth85,type = "pred",terms = "precipitation[all]")
+
+#ROE, east
+panelregressionROEeast75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
+summary(panelregressionROEeast75)
+plot_model(panelregressionROEeast75,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEeast80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
+summary(panelregressionROEeast80)
+plot_model(panelregressionROEeast80,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEeast85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
+summary(panelregressionROEeast85)
+plot_model(panelregressionROEeast85,type = "pred",terms = "precipitation[all]")
+
+#ROE,west
+panelregressionROEwest75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelwest)
+summary(panelregressionROEwest75)
+plot_model(panelregressionROEwest75,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEwest80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelwest)
+summary(panelregressionROEwest80)
+plot_model(panelregressionROEwest80,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEwest85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelwest)
+summary(panelregressionROEwest85)
+plot_model(panelregressionROEwest85,type = "pred",terms = "precipitation[all]")
+
+#ROE,north
+panelregressionROEnorth75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelnorth)
+summary(panelregressionROEnorth75)
+plot_model(panelregressionROEnorth75,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEnorth80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelnorth)
+summary(panelregressionROEnorth80)
+plot_model(panelregressionROEnorth80,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEnorth85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company,cluster = c("year","company"), panelnorth)
+summary(panelregressionROEnorth85)
+plot_model(panelregressionROEnorth85,type = "pred",terms = "precipitation[all]")
+
+#ROE,south
+panelregressionROEsouth75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelsouth)
+summary(panelregressionROEsouth75)
+plot_model(panelregressionROEsouth75,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEsouth80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelsouth)
+summary(panelregressionROEsouth80)
+plot_model(panelregressionROEsouth80,type = "pred",terms = "precipitation[all]")
+
+panelregressionROEsouth85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelsouth)
+summary(panelregressionROEsouth85)
+plot_model(panelregressionROEsouth85,type = "pred",terms = "precipitation[all]")
 
 
-#Should I do like this?
+#Part Three:
 #Run the same model again for subsamples based on the firm's employee size class
 panel_final$Number.of.employees.Last.avail..yr <- as.numeric(panel_final$Number.of.employees.Last.avail..yr)
 panel_final$companysize <-if_else(panel_final$Number.of.employees.Last.avail..yr <= 9, 1, if_else(panel_final$Number.of.employees.Last.avail..yr <= 50, 2, if_else(panel_final$Number.of.employees.Last.avail..yr<= 250, 3, 4)))
-panelsize1 <- subset(panel_final, panel_final$companysize == 1)
-panel1regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize1)
-summary(panel1regressionTO,se="twoway")
-panelsize2 <- subset(panel_final, panel_final$companysize == 2)
-panel2regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize2)
-summary(panel2regressionTO,se="twoway")
-panelsize3 <- subset(panel_final, panel_final$companysize == 3)
-panel3regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize3)
-summary(panel3regressionTO,se="twoway")
-panelsize4 <- subset(panel_final, panel_final$companysize == 4)
-panel4regressionTO<- feols(turnover ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize4)
-summary(panel4regressionTO,se="twoway")
 
-panel1regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize1)
-summary(panel1regressionROE,se="twoway")
-panel2regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize2)
-summary(panel2regressionROE,se="twoway")
-panel3regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize3)
-summary(panel3regressionROE,se="twoway")
-panel4regressionROE<- feols(ROE ~ THI_DAYS + precipitation + precipitation^2 | year+company, panelsize4)
-summary(panel4regressionROE,se="twoway")
+#turnover,size1
+panelsize1 <- subset(panel_final, panel_final$companysize == 1)
+panel1regressionTO75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company,  cluster = c("year","company"),panelsize1)
+summary(panel1regressionTO75)
+plot_model(panel1regressionTO75,type = "pred",terms = "precipitation[all]")
+
+panel1regressionTO80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company,  cluster = c("year","company"),panelsize1)
+summary(panel1regressionTO80)
+plot_model(panel1regressionTO80,type = "pred",terms = "precipitation[all]")
+
+panel1regressionTO85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company,  cluster = c("year","company"),panelsize1)
+summary(panel1regressionTO85)
+plot_model(panel1regressionTO85,type = "pred",terms = "precipitation[all]")
+
+#turnover, size2
+panelsize2 <- subset(panel_final, panel_final$companysize == 2)
+panel2regressionTO75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company,  cluster = c("year","company"),panelsize2)
+summary(panel2regressionTO75)
+plot_model(panel2regressionTO75,type = "pred",terms = "precipitation[all]")
+
+panel2regressionTO80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company,  cluster = c("year","company"),panelsize2)
+summary(panel2regressionTO80)
+plot_model(panel2regressionTO80,type = "pred",terms = "precipitation[all]")
+
+panel2regressionTO85<- feols(log(turnover)~ THI_DAYS85 + precipitation + precipitation^2 | year+company,  cluster = c("year","company"),panelsize2)
+summary(panel2regressionTO85)
+plot_model(panel2regressionTO85,type = "pred",terms = "precipitation[all]")
+
+#turnover, size3
+panelsize3 <- subset(panel_final, panel_final$companysize == 3)
+panel3regressionTO75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelsize3)
+summary(panel3regressionTO75)
+plot_model(panel3regressionTO75,type = "pred",terms = "precipitation[all]")
+
+panel3regressionTO80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelsize3)
+summary(panel3regressionTO80)
+plot_model(panel3regressionTO80,type = "pred",terms = "precipitation[all]")
+
+panel3regressionTO85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),panelsize3)
+summary(panel3regressionTO85)
+plot_model(panel3regressionTO85,type = "pred",terms = "precipitation[all]")
+
+#turnover, size4
+panelsize4 <- subset(panel_final, panel_final$companysize == 4)
+panel4regressionTO75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
+summary(panel4regressionTO75)
+plot_model(panel4regressionTO75,type = "pred",terms = "precipitation[all]")
+
+panel4regressionTO80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
+summary(panel4regressionTO80)
+plot_model(panel4regressionTO80,type = "pred",terms = "precipitation[all]")
+
+panel4regressionTO85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
+summary(panel4regressionTO85)
+plot_model(panel4regressionTO85,type = "pred",terms = "precipitation[all]")
+
+#ROE. size1
+panel1regressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize1)
+summary(panel1regressionROE75)
+plot_model(panel1regressionROE75,type = "pred",terms = "precipitation[all]")
+
+panel1regressionROE80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize1)
+summary(panel1regressionROE80)
+plot_model(panel1regressionROE80,type = "pred",terms = "precipitation[all]")
+
+panel1regressionROE85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize1)
+summary(panel1regressionROE85)
+plot_model(panel1regressionROE85,type = "pred",terms = "precipitation[all]")
+
+#ROE,size2
+panel2regressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize2)
+summary(panel2regressionROE75)
+plot_model(panel2regressionROE75,type = "pred",terms = "precipitation[all]")
+
+panel2regressionROE80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize2)
+summary(panel2regressionROE80)
+plot_model(panel2regressionROE80,type = "pred",terms = "precipitation[all]")
+
+panel2regressionROE85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize2)
+summary(panel2regressionROE85)
+plot_model(panel2regressionROE85,type = "pred",terms = "precipitation[all]")
+
+#ROE,size3
+panel3regressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize3)
+summary(panel3regressionROE75)
+plot_model(panel3regressionROE75,type = "pred",terms = "precipitation[all]")
+
+panel3regressionROE80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize3)
+summary(panel3regressionROE80)
+plot_model(panel3regressionROE80,type = "pred",terms = "precipitation[all]")
+
+panel3regressionROE85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize3)
+summary(panel3regressionROE85)
+plot_model(panel3regressionROE85,type = "pred",terms = "precipitation[all]")
+
+#ROE,size4
+panel4regressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
+summary(panel4regressionROE75)
+plot_model(panel4regressionROE75,type = "pred",terms = "precipitation[all]")
+
+panel4regressionROE80<- feols(ROE ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
+summary(panel4regressionROE80)
+plot_model(panel4regressionROE80,type = "pred",terms = "precipitation[all]")
+
+panel4regressionROE85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
+summary(panel4regressionROE85)
+plot_model(panel4regressionROE85,type = "pred",terms = "precipitation[all]")
 ###Question:How to make graphs for these results?
