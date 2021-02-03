@@ -22,28 +22,40 @@ library(dplyr)
 panel_final<- subset(panel_final, panel_final$company != "2707._CASEIFICIO RISORTA SRL")
 panel_final<- subset(panel_final, panel_final$company != "3202._SICILMILK S.R.L.")
 panel_final$turnover <- as.numeric(panel_final$turnover) #change the type of turnover from character to numeric
-summary(panel_final$turnover)# the min turnover is -70, but we need turnover >0, wo we use turnover+70
-hist((panel_final$turnover))
+panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
 
+#summary statistics
+summary(panel_final$turnover)
+hist(panel_final$turnover)
+hist(log(panel_final$turnover))
+summary(panel_final$ROE) 
+hist(panel_final$ROE,xlim = c(-300,200))
+summary(panel_final$Number.of.employees.Last.avail..yr)
+hist(panel_final$Number.of.employees.Last.avail..yr)
+summary(panel_final$THI_DAYS75)
+summary(panel_final$THI_DAYS80)
+summary(panel_final$THI_DAYS85)
+summary(panel_final$precipitation)
+
+#turnover
+#threshold=75
 panelregressionTO75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
-summary(panelregressionTO75)#threshold=75
+summary(panelregressionTO75)
 plot_model(panelregressionTO75,type = "pred",terms = "precipitation[all]")
-
+#threshold=80
 panelregressionTO80<- feols(log(turnover) ~ THI_DAYS80 + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
-summary(panelregressionTO80)#threshold=80
+summary(panelregressionTO80)
 plot_model(panelregressionTO80,type = "pred",terms = "precipitation[all]")
-
+#threshold=85
 panelregressionTO85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company") , panel_final)#do the fixed effects regression
-summary(panelregressionTO85)#threshold=85
+summary(panelregressionTO85)
 plot_model(panelregressionTO85,type = "pred",terms = "precipitation[all]")
 
 # summary(panelregressionTO, se="twoway") #we do not put clustered se in summary but put in regression
 # or: summary(panelregressionTO, cluster = ~year+company)
 # or: summary(panelregression, cluster = panelregression[,c("year","company")])
 
-panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
-summary(panel_final$ROE)
-
+#ROE
 panelregressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
 summary(panelregressionROE75)
 plot_model(panelregressionROE75,type = "pred",terms = "precipitation[all]")
