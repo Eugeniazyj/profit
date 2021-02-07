@@ -23,15 +23,19 @@ panel_final<- subset(panel_final, panel_final$company != "2707._CASEIFICIO RISOR
 panel_final<- subset(panel_final, panel_final$company != "3202._SICILMILK S.R.L.")
 panel_final$turnover <- as.numeric(panel_final$turnover) #change the type of turnover from character to numeric
 panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
+panel_final$Number.of.employees.Last.avail..yr <- as.numeric(panel_final$Number.of.employees.Last.avail..yr)
 
 #summary statistics
 summary(panel_final$turnover)
 hist(panel_final$turnover)
-hist(log(panel_final$turnover))
+hist(log(panel_final$turnover),col = "lightgreen")
 summary(panel_final$ROE) 
-hist(panel_final$ROE,xlim = c(-300,200))
+hist(panel_final$ROE,xlim = c(-300,200),col = "lightgreen")
 summary(panel_final$Number.of.employees.Last.avail..yr)
-hist(panel_final$Number.of.employees.Last.avail..yr)
+hist(panel_final$Number.of.employees.Last.avail..yr,xlim = c(0,500),col = "lightgreen")
+panel_final$companysize <-if_else(panel_final$Number.of.employees.Last.avail..yr <= 9, 1, if_else(panel_final$Number.of.employees.Last.avail..yr <= 50, 2, if_else(panel_final$Number.of.employees.Last.avail..yr<= 250, 3, 4)))
+summary(panel_final$companysize)
+hist(panel_final$companysize)
 summary(panel_final$THI_DAYS75)
 summary(panel_final$THI_DAYS80)
 summary(panel_final$THI_DAYS85)
@@ -74,11 +78,16 @@ panelrobust <- panel_final
 panelrobust$turnover <- as.numeric(panelrobust$turnover)
 panelrobust$ROE <- as.numeric(gsub(",",".",panelrobust$ROE)) 
 summary(panelrobust$long)
-paneleast <- subset(panelrobust, panelrobust$long > 14.2) # use the same standard as Maarten
-panelwest <- subset(panelrobust, panelrobust$long < 14.2)
+#paneleast <- subset(panelrobust, panelrobust$long > 14.2) # use the same standard as Maarten
+#panelwest <- subset(panelrobust, panelrobust$long < 14.2)
+paneleast <- subset(panelrobust, panelrobust$long > 15.79)
+panelwest <- subset(panelrobust, panelrobust$long < 15.79)
+
 summary(panelrobust$lat)
-panelnorth <- subset(panelrobust,panelrobust$lat > 46.75)
-panelsouth <- subset(panelrobust,panelrobust$lat < 46.75)
+#panelnorth <- subset(panelrobust,panelrobust$lat > 46.75)
+#panelsouth <- subset(panelrobust,panelrobust$lat < 46.75)
+panelnorth <- subset(panelrobust,panelrobust$lat > 45.4)
+panelsouth <- subset(panelrobust,panelrobust$lat < 45.4)
 
 #turnover, east 
 panelregressionTOeast75<- feols(log(turnover) ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"),paneleast)
