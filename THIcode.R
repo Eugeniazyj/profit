@@ -57,6 +57,7 @@ coordinates(locations) <- ~ Longitude + Latitude
 proj4string(locations) <- CRS("+init=EPSG:4326")
 plot(oneday)
 plot(locations, pch=15, col="red", add=T)
+mapView(SpatialPointsDataFrame(coords=locations[,c(1:2)],data= locations, proj4string=CRS("+init=epsg:4326")))  # show the locations of companies in the world map
 
 
 
