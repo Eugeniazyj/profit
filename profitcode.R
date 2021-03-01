@@ -55,8 +55,7 @@ profit$Latitude <- str_replace_all(profit$Latitude," ","")
 
 profit <- cbind(profit,degree(Latitude, Longitude, data=profit, digits=15)) # convert the long and lat data into decimal coordinates
 
-# profit$dec <- degree(Latitude, Longitude, data=profit)#之前自己尝试的，删掉
-# profit<- profit[,-9:-10]
+
 
 plot(SpatialPoints(profit[,c(12:11)])) # plot the location of companies
 typeof(profit) # check the type of the profit data
