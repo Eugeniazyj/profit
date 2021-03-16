@@ -1,33 +1,15 @@
-# next steps
-# 1. read through the documentation of fixest
-# https://www.rdocumentation.org/packages/fixest/versions/0.8.0
-# 2. get familiar with feols
-# take ROE as dependent variable and THI as well as precipitation and precipitation squared (PREC+I(PREC^2) as independent variables
-# include a company and a year fixed effect
-# and cluster by company and year
-# you can do this all with feols
-# 3. look at results
-# you get the marginal impact of THI directly from the regression output
-# use summary(regression_output) to get it
-# for rainfall you need a marginal effects plot
-# see here https://www.patrickbaylis.com/blog/2018-04-12-svycontrasts/
-
-
 # Part one: basic regression
 library(fixest)
 library(sjPlot)
 library(ggplot2)
 library(dplyr)
-library(sp)
-library(mapview)
 #drop the observations that turnover < 0
 panel_final<- subset(panel_final, panel_final$company != "2707._CASEIFICIO RISORTA SRL")
 panel_final<- subset(panel_final, panel_final$company != "3202._SICILMILK S.R.L.")
-#panel_final<- subset(panel_final, panel_final$long < 60)
-#mapView(SpatialPointsDataFrame(coords=panel_final[,c(16:15)],data= panel_final[,c(1:14)], proj4string=CRS("+init=epsg:4326")))  # show the locations of companies in the world map
+mapView(SpatialPointsDataFrame(coords=panel_final[,c(16:15)],data= panel_final[,c(1:14)], proj4string=CRS("+init=epsg:4326")))  # show the locations of companies in the world map
 
-panel_final$turnover <- as.numeric(panel_final$turnover) #change the type of turnover from character to numeric
-panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
+panel_final$turnover <- as.numeric(panel_final$turnover) 
+panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) 
 panel_final$Number.of.employees.Last.avail..yr <- as.numeric(panel_final$Number.of.employees.Last.avail..yr)
 
 #summary statistics
@@ -42,7 +24,7 @@ summary(panel_final$Number.of.employees.Last.avail..yr)
 hist(panel_final$Number.of.employees.Last.avail..yr,xlim = c(0,500),col = "lightgreen")
 panel_final$companysize <-if_else(panel_final$Number.of.employees.Last.avail..yr <= 9, 1, if_else(panel_final$Number.of.employees.Last.avail..yr <= 50, 2, if_else(panel_final$Number.of.employees.Last.avail..yr<= 250, 3, 4)))
 summary(panel_final$companysize)
-hist(panel_final$companysize,col = "lightgreen",  main = "Histogram of firm sizes of dairy processors", xlab = "Firm size",xlim=c(0,4))
+hist(panel_final$companysize,col = "lightgreen",  main = "Histogram of firm sizes of dairy processors", xlab = "Firm size")
 summary(panel_final$THI_DAYS75)
 summary(panel_final$THI_DAYS80)
 summary(panel_final$THI_DAYS85)
@@ -62,10 +44,6 @@ panelregressionTO85<- feols(log(turnover) ~ THI_DAYS85 + precipitation + precipi
 summary(panelregressionTO85)
 plot_model(panelregressionTO85,type = "pred",terms = "precipitation[all]")
 
-# summary(panelregressionTO, se="twoway") #we do not put clustered se in summary but put in regression
-# or: summary(panelregressionTO, cluster = ~year+company)
-# or: summary(panelregression, cluster = panelregression[,c("year","company")])
-
 #ROE
 panelregressionROE75<- feols(ROE ~ THI_DAYS75 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panel_final)#NOTE: 2,403 observations removed because of NA values (LHS: 735, RHS: 1,811).
 summary(panelregressionROE75)
@@ -80,19 +58,14 @@ summary(panelregressionROE85)
 plot_model(panelregressionROE85,type = "pred",terms = "precipitation[all]")
 
 #Part two:robust check
-###How to tell whether it is robust or not? 
 panelrobust <- panel_final
 panelrobust$turnover <- as.numeric(panelrobust$turnover)
 panelrobust$ROE <- as.numeric(gsub(",",".",panelrobust$ROE)) 
 summary(panelrobust$long)
-#paneleast <- subset(panelrobust, panelrobust$long > 15.79) 
-#panelwest <- subset(panelrobust, panelrobust$long < 15.79)
 paneleast <- subset(panelrobust, panelrobust$long > 15.79)
 panelwest <- subset(panelrobust, panelrobust$long < 15.79)
 
 summary(panelrobust$lat)
-#panelnorth <- subset(panelrobust,panelrobust$lat > 45.4)
-#panelsouth <- subset(panelrobust,panelrobust$lat < 45.4)
 panelnorth <- subset(panelrobust,panelrobust$lat > 45.4)
 panelsouth <- subset(panelrobust,panelrobust$lat < 45.4)
 
@@ -313,4 +286,3 @@ plot_model(panel4regressionROE80,type = "pred",terms = "precipitation[all]",titl
 panel4regressionROE85<- feols(ROE ~ THI_DAYS85 + precipitation + precipitation^2 | year+company, cluster = c("year","company"), panelsize4)
 summary(panel4regressionROE85)
 plot_model(panel4regressionROE85,type = "pred",terms = "precipitation[all]",title   ="Predicted values of ROE (large)")
-###Question:How to make graphs for these results?
