@@ -1,7 +1,7 @@
 setwd("~/Desktop/Thesis/data/Agri4cast")
 
 library(raster)
-library(data.table) #for fread
+library(data.table) 
 library(rJava)
 library(reshape2)
 library(dplyr)

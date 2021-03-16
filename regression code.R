@@ -23,8 +23,8 @@ library(mapview)
 #drop the observations that turnover < 0
 panel_final<- subset(panel_final, panel_final$company != "2707._CASEIFICIO RISORTA SRL")
 panel_final<- subset(panel_final, panel_final$company != "3202._SICILMILK S.R.L.")
-#panel_final<- subset(panel_final, panel_final$long < 60)
-#mapView(SpatialPointsDataFrame(coords=panel_final[,c(16:15)],data= panel_final[,c(1:14)], proj4string=CRS("+init=epsg:4326")))  # show the locations of companies in the world map
+# panel_final<- subset(panel_final, panel_final$long < 60)
+# mapView(SpatialPointsDataFrame(coords=panel_final[,c(16:15)],data= panel_final[,c(1:14)], proj4string=CRS("+init=epsg:4326")))  # show the locations of companies in the world map
 
 panel_final$turnover <- as.numeric(panel_final$turnover) #change the type of turnover from character to numeric
 panel_final$ROE <- as.numeric(gsub(",",".",panel_final$ROE)) # change "," to "." in order to make ROE numeric
